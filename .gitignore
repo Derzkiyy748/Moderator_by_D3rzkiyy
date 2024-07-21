@@ -6,7 +6,7 @@ __pycache__/
 INFO.md
 
 # Файлы конфигурации для venv
-.env
+bot/misc/.env
 .venv
 env/
 venv/
