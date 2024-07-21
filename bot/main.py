@@ -1,140 +1,67 @@
-'''Вообщем-то, бот должен иметь базу данных на SQL.
+import asyncio
+import logging
+import sys
+import os
+import time
+from aiogram import Bot, Dispatcher
+from dotenv import load_dotenv
+from database.models import asyn_main
+from misc.config import ADMIN_ID, LOG_CHANNEL_ID  # Добавьте LOG_CHANNEL_ID в конфигурацию
 
-Ранги:
-Пользователь - (0)
-Модератор - (1)
-Администратор - (2)
-Старший администратор - (3)
-Спец администратор - (4)
-Создатель беседы - (5)
-ТОЛЬКО ДЛЯ МЕНЯ РАНГ (@french_dev) - (6)
+load_dotenv(dotenv_path="bot/misc/.env")
 
-/start - Автоматическая регистрация беседы в базе данных
+class TelegramLogsHandler(logging.Handler):
+    def __init__(self, bot: Bot, log_channel_id: int):
+        super().__init__()
+        self.bot = bot
+        self.log_channel_id = log_channel_id
 
-Важно, чтобы все наказания сохранялись в базе данных, даже если участник покинул группу и пере-зашёл!!
+    def emit(self, record):
+        log_entry = self.format(record)
+        asyncio.create_task(self.send_log(log_entry))
 
-Бот должен быть для общего доступа, чтобы могли им пользоваться все.
+    async def send_log(self, log_entry):
+        await self.bot.send_message(chat_id=self.log_channel_id, text=log_entry)
 
-1. Модерация 
-- Система блокировка (Бан)
-/ban [Пользователь] [Срок в днях] [Причина]
-Команда 2 ранга
+class MyBot:
+    def __init__(self):
+        self.token = os.getenv('TOKEN_BOT')
+        self.bot = Bot(self.token)
+        self.dp = Dispatcher()
 
-- Система разблокировать (АнБан)
-/unban [Пользователь] [Причина]
-Команда 2 ранга
+    async def on_startup(self):
+        # Инициализация базы данных
+        await asyn_main()
 
-- Система блокировки чата (Мут)
-/mute [Пользователь] [Срок в минутах] [Причина]
-Команда 1 ранга
+        # Отправка сообщения администратору при запуске бота
+        for admin_id in ADMIN_ID:
+            await self.bot.send_message(chat_id=admin_id, text=f"Бот запущен \n<b>{time.asctime()}</b>", parse_mode="html")
 
-- Система разблокировки чата (АнМут)
-/unmute [Пользователь] [Причина]
-Команда 1 ранга
-- Система выдачи предупреждение 
-/warn [Пользователь] [Причина]
-Команда 1 ранга
+        # Запуск диспетчера
+        await self.dp.start_polling(self.bot)
 
--Система снятия предупреждения
-/unwarn [Пользователь] [Причина]
-Команда 1 ранга
- 
-- Система исключения из беседы (Кик)
-/kick [Пользователь] [Причина]
-Команда 1 ранга
+    def run(self):
+        logging.basicConfig(level=logging.INFO, stream=sys.stdout)  # Настройка уровня логирования
+        
+        # Создание и настройка логгера
+        logger = logging.getLogger()
+        logger.setLevel(logging.INFO)
 
-- Система ставить никнейм
-/snick [Пользователь] [Никнейм]
-Команда 1 ранга
+        # Создание и добавление пользовательского обработчика логов
+        telegram_handler = TelegramLogsHandler(self.bot, LOG_CHANNEL_ID)
+        telegram_handler.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        telegram_handler.setFormatter(formatter)
+        logger.addHandler(telegram_handler)
+        
+        try:
+            asyncio.run(self.on_startup())  # Запуск асинхронной функции on_startup
+        except KeyboardInterrupt:
+            print("Exit")
 
-- Система снимать никнейм
-/rnick [Пользователь]
-Команда 1 ранга
+if __name__ == "__main__":
+    bot_instance = MyBot()
+    bot_instance.run()
 
-- Система повышать ранги пользователям
-/gmoder [Пользователь] - Выдать права модератора (1)
-Команда 2 ранга
 
-/gadmin [Пользователь] -  Выдать права администратора (2)
-Команда 3 ранга
 
-/gsenadmin [Пользователь] - Выдать права старшего администратора - (3)
-Команда 4 ранга
-
-/gspec [Пользователь] - Выдать права спец. администратора - (4)
-Команда 5 ранга
-
-- Система понижать ранги
-/rrole [Пользователь] [Причина]
-Команда 3 ранга
-
-- Система списка модераторов
-/staff
-Команда 1 ранга
-
-- Система созвать всех 
-/zov [Причина]
-Команда 1 ранга
-
-- Система списка ников
-/nlist 
-Команда 1 ранга
-
-- Система списка у кого нету ников
-/nolist 
-Команда 1 ранга
-
-- Система узнать никнейм
-/gnick [Пользователь]
-Команда 1 ранга
-
-- Система просмотр предупреждения
-/gwarn [Пользователь]
-Команда 1 ранга
-
-- Система списка предупреждений 
-/wlist 
-Команда 1 ранга
-
-- Система списка блокировок чата
-/mlist 
-Команда 1 ранга
-
-- Система списка блокировок
-/blist 
-Команда 2 ранга 
-
-- Система удаления сообщения 
-/clear [Количество сообщений]
-Команда 1 ранга
-
-- Система проверки на блокировку
-/getban [Пользователь] 
-Команда 1 ранга
-
-- Система снятие ников всем
-/rnickall
-Команда 3 ранга
-
-- Система фильтрации слов
-/filter [Add/Remove] [Слово]
-Команда 3 ранга
-
-- Система защиты от спама
-/antiflood [Кол-во сообщений в минуту]
-Команда 3 ранга
-
-- Система приветствия
-/welcometext [Текст]
-Команда 3 ранга
-
-- Система передачи прав
-/editowner — передать права владельца беседы
-Команда 5 ранга
-
-- Система исключения всех
-/masskick 
-Команда 5 ранга
-
-КОМАНДЫ 6 РАНГА ТОЛЬКО ДЛЯ МЕНЯ
-/news [Текст] — сообщение во все беседы'''
