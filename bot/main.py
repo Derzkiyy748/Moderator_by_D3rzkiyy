@@ -3,6 +3,7 @@ import logging
 import sys
 import os
 import time
+
 from aiogram import Bot, Dispatcher
 from dotenv import load_dotenv
 from database.models import asyn_main
@@ -18,7 +19,7 @@ class TelegramLogsHandler(logging.Handler):
 
     def emit(self, record):
         log_entry = self.format(record)
-        asyncio.create_task(self.send_log(log_entry))
+        asyncio.run_coroutine_threadsafe(self.send_log(log_entry), asyncio.get_running_loop())
 
     async def send_log(self, log_entry):
         await self.bot.send_message(chat_id=self.log_channel_id, text=log_entry)
@@ -30,9 +31,6 @@ class MyBot:
         self.dp = Dispatcher()
 
     async def on_startup(self):
-        # Инициализация базы данных
-        await asyn_main()
-
         # Отправка сообщения администратору при запуске бота
         for admin_id in ADMIN_ID:
             await self.bot.send_message(chat_id=admin_id, text=f"Бот запущен \n<b>{time.asctime()}</b>", parse_mode="html")
@@ -42,18 +40,18 @@ class MyBot:
 
     def run(self):
         logging.basicConfig(level=logging.INFO, stream=sys.stdout)  # Настройка уровня логирования
-        
+
         # Создание и настройка логгера
         logger = logging.getLogger()
         logger.setLevel(logging.INFO)
 
         # Создание и добавление пользовательского обработчика логов
         telegram_handler = TelegramLogsHandler(self.bot, LOG_CHANNEL_ID)
-        telegram_handler.setLevel(logging.INFO)
+        telegram_handler.setLevel(logging.ERROR)  # Отправка только ошибок
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         telegram_handler.setFormatter(formatter)
         logger.addHandler(telegram_handler)
-        
+
         try:
             asyncio.run(self.on_startup())  # Запуск асинхронной функции on_startup
         except KeyboardInterrupt:
@@ -62,6 +60,9 @@ class MyBot:
 if __name__ == "__main__":
     bot_instance = MyBot()
     bot_instance.run()
+
+
+
 
 
 
