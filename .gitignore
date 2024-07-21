@@ -1,10 +1,11 @@
-# Byte-compiled / optimized / DLL files
+# Байт-код, оптимизированные / DLL-файлы
 __pycache__/
+*.py[cod]
 
 # Private information for the developer
-INFO
+INFO.md
 
-# Environments
+# Файлы конфигурации для venv
 .env
 .venv
 env/
