@@ -64,7 +64,9 @@ class Warn(Base):
     warn_id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column()
     chat_id: Mapped[int] = mapped_column()
-    reason: Mapped[str] = mapped_column()
+    reason_1: Mapped[str] = mapped_column()
+    reason_2: Mapped[str] = mapped_column()
+    reason_3: Mapped[str] = mapped_column()
     date: Mapped[int] = mapped_column(BigInteger)
 
 
