@@ -11,14 +11,14 @@ from aiogram.enums import ParseMode
 from aiogram.filters import CommandObject
 
 from src.group.request import DatabaseGroup
+from src.group.module.mute import Mute
 import time
 
 
 db = DatabaseGroup()
 
 
-class Mute:
-
+class Ban:
     @staticmethod
     async def parse_time(time_string: str | None) -> datetime | None:
         if not time_string:
@@ -42,10 +42,9 @@ class Mute:
         
         new_datetime = current_date + time_delta
         return new_datetime
-            
 
-
-    async def mute(message: Message, bot: Bot, command: CommandObject | None = None):
+    @staticmethod
+    async def ban(message: Message, bot: Bot, command: CommandObject | None = None):
         chats_id = message.chat.id
         user_id = message.from_user.id
 
@@ -58,84 +57,69 @@ class Mute:
 
         # Проверка и получение времени
         try:
-            until_date = await Mute.parse_time(parts[2])  # Предполагаем, что время передается в секундах
+            until_date = await Ban.parse_time(parts[2])  # Предполагаем, что время передается в секундах
         except ValueError:
-            await message.reply('Неправильный формат времени. Пожалуйста, укажите вид времени(s, m, h, d).\n\nПример: /mute 43553453 40m спам')
+            await message.reply('Неправильный формат времени. Пожалуйста, укажите вид времени(s, m, h, d).\n\nПример: /ban 77777777 40m спам')
             return
 
         reason = parts[3]
 
         try:
-            user_id_to_mute = int(parts[1])
+            user_id_to_ban = int(parts[1])
         except ValueError:
             await message.reply('Неправильный формат user_id. Пожалуйста, укажите корректный user_id.')
             return
 
         user_rank = await db.get_user_rank(user_id, chats_id)
-        user_to_mute_rank = await db.get_user_rank(user_id_to_mute, chats_id)
+        user_to_ban_rank = await db.get_user_rank(user_id_to_ban, chats_id)
 
-        if int(user_rank) >= 1:
-            if int(user_rank) >= int(user_to_mute_rank):
+        if int(user_rank) >= 2:
+            if int(user_rank) >= int(user_to_ban_rank):
                 with suppress(TelegramBadRequest):
-
-                    # Используем правильную переменную `until_date`
-                    await bot.restrict_chat_member(
-                        chats_id,
-                        user_id_to_mute,
-                        until_date=until_date,
-                        permissions=ChatPermissions(can_send_messages=False)
-                    )
-                    await message.reply(f'Пользователь {user_id_to_mute} был замучен на {parts[2]} по причине: {reason}\n\nВремя разблокировки: {until_date}')
-                    await db.mute_user(user_id_to_mute, chats_id, until_date, reason)
+                    await bot.ban_chat_member(chats_id,
+                                              user_id_to_ban,
+                                              until_date=until_date)
+                    
+                    await db.ban_user(user_id_to_ban, chats_id, until_date, reason)
+                    await message.reply(f'Пользователь {user_id_to_ban} был забанен на {parts[2]} по причине: {reason}\n\nВремя разблокировки: {until_date}')
             else:
-                await message.reply('Вы не можете замьютить данного пользователя.')
+                await message.reply('Вы не можете забанить данного пользователя.')
         else:
             await message.reply('Вы не можете использовать эту команду.')
 
 
-class UnMute:
+class UnBan:
     @staticmethod
-    async def unmute(message: Message, bot: Bot, command: CommandObject | None = None):
+    async def unban(message: Message, bot: Bot, command: CommandObject | None = None):
         chats_id = message.chat.id
         user_id = message.from_user.id
 
         parts = message.text.split()
         
         # Проверка количества аргументов
-        if len(parts) < 1:
+        if len(parts) < 3:
             await message.reply('Недостаточно аргументов для выполнения команды.')
             return
 
-        # Проверка и получение времени
         try:
-            user_id_to_unmute = int(parts[1])
+            user_id_to_unban = int(parts[1])
         except ValueError:
             await message.reply('Неправильный формат user_id. Пожалуйста, укажите корректный user_id.')
             return
+        
+        reason = parts[2]
 
         user_rank = await db.get_user_rank(user_id, chats_id)
-        user_to_unmute_rank = await db.get_user_rank(user_id_to_unmute, chats_id)
+        user_to_unban_rank = await db.get_user_rank(user_id_to_unban, chats_id)
 
-        if int(user_rank) >= 1:
-            if int(user_rank) >= int(user_to_unmute_rank):
+        if int(user_rank) >= 2:
+            if int(user_rank) >= int(user_to_unban_rank):
                 with suppress(TelegramBadRequest):
-                    await bot.restrict_chat_member(chats_id, user_id_to_unmute, permissions=ChatPermissions(can_send_messages=True))
-                    await message.reply(f'Пользователь {user_id_to_unmute} был размучен.')
+                    await bot.unban_chat_member(chats_id, user_id_to_unban)
+                    await message.reply(f'Пользователь {user_id_to_unban} был разбанен по причине: {reason}.')
             else:
-                await message.reply('Вы не можете размьютить данного пользователя.')
+                await message.reply('Вы не можете разбанить данного пользователя.')
         else:
             await message.reply('Вы не можете использовать эту команду.')
-
-
-
-        
-
-        
-
-
-
-            
-
-
 
 

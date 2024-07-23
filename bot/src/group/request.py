@@ -3,7 +3,7 @@ from sqlalchemy import BigInteger, ForeignKey, String,  Column, Integer, select
 from sqlalchemy.orm import relationship, Mapped, mapped_column, DeclarativeBase
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 
-from database.models import async_session, Chat, User, Mute
+from database.models import async_session, Chat, User, Mute, Ban
 
 from aiogram import Bot
 from aiogram.types import ChatMemberOwner
@@ -63,8 +63,7 @@ class DatabaseGroup:
         
 
     @staticmethod
-    async def mute_user(user_id: int, chat_id: int, duration_minutes: int, reason: str = None):
-        mute_until = datetime.utcnow() + datetime.timedelta(minutes=duration_minutes)
+    async def mute_user(user_id: int, chat_id: int, mute_until: int, reason: str = None):
 
         async with async_session() as session:
             async with session.begin():
@@ -72,14 +71,23 @@ class DatabaseGroup:
                     user_id=user_id,
                     chat_id=chat_id,
                     reason=reason,
-                    mute_until=mute_until
+                    date=mute_until
                 )
                 session.add(mute_record)
             await session.commit()
 
-        # Здесь вы можете добавить код для фактического отключения пользователя в чате.
-        # Например, если вы используете aiogram:
-        bot = Bot.get_current()
-        await bot.restrict_chat_member(chat_id, user_id, until_date=mute_until, can_send_messages=False)
 
-        return mute_record
+    @staticmethod
+    async def ban_user(user_id: int, chat_id: int, ban_until: int, reason: str = None):
+
+        async with async_session() as session:
+            async with session.begin():
+                ban_record = Ban(
+                    user_id=user_id,
+                    chat_id=chat_id,
+                    reason=reason,
+                    date=ban_until
+                )
+                session.add(ban_record)
+            await session.commit()
+    

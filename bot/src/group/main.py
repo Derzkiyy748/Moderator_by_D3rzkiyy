@@ -8,6 +8,8 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart, Command
 
 from src.group.module.start import StartBot
+from src.group.module.mute import Mute, UnMute
+from src.group.module.ban import Ban, UnBan
 
 
 class UserRouter:
@@ -18,13 +20,30 @@ class UserRouter:
         self.register_handlers()
 
     def register_handlers(self):
-        self.router.message.register(self._add_user, F.text)
         self.router.message.register(self.start_command, Command("start"))
+
+        self.router.message.register(self._mute, Command('mute'))
+        self.router.message.register(self._unmute, Command('unmute'))
+
+        self.router.message.register(self._ban, Command('ban'))
+        self.router.message.register(self._unban, Command('unban'))
+
+        self.router.message.register(self._add_user, F.text)
 
     async def start_command(self, message: Message):
         await StartBot.start(message, self.bot)
 
     async def _add_user(self, message: Message):
         await StartBot.add_usere(message, self.bot)
+
+    async def _mute(self, message: Message):
+        await Mute.mute(message, self.bot)
+    async def _unmute(self, message: Message):
+        await UnMute.unmute(message, self.bot)
+
+    async def _ban(self, message: Message):
+        await Ban.ban(message, self.bot)
+    async def _unban(self, message: Message):
+        await UnBan.unban(message, self.bot)
 
 
