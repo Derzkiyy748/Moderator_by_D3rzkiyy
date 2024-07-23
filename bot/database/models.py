@@ -27,14 +27,53 @@ class Base(AsyncAttrs, DeclarativeBase):
 class User(Base):
     __tablename__ = "users"
     user_id: Mapped[int] = mapped_column(primary_key=True)
-    name = mapped_column(String(30))
-    username: Mapped[str] = mapped_column(default=" ")
-    balance: Mapped[int] = mapped_column(default=0)
-    registration: Mapped[str] = mapped_column(default='False')
-    ban: Mapped[str] = mapped_column(default='False')
-    registration_time =  mapped_column(String)
-    mode: Mapped[str] = mapped_column(default='user')
-    soglashenie: Mapped[str] = mapped_column(default="False")
+    username: Mapped[str] = mapped_column(String(50))
+    chat_id: Mapped[int] = mapped_column()
+    nick: Mapped[str] = mapped_column(default="")
+    rank: Mapped[str] = mapped_column(default=0)
+
+
+class Chat(Base):
+    __tablename__ = "chat"
+    chat_id: Mapped[int] = mapped_column(primary_key=True)
+    chat_name: Mapped[str] = mapped_column(String(50))
+    antiflood: Mapped[int] = mapped_column(default=0)
+    filter_words: Mapped[str] = mapped_column(default="")
+
+
+class Ban(Base):
+    __tablename__ = "ban"
+    ban_id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column()
+    chat_id: Mapped[int] = mapped_column()
+    reason: Mapped[str] = mapped_column()
+    date: Mapped[int] = mapped_column(BigInteger)
+
+
+class Mute(Base):
+    __tablename__ = "mute"
+    mute_id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column()
+    chat_id: Mapped[int] = mapped_column()
+    reason: Mapped[str] = mapped_column()
+    date: Mapped[int] = mapped_column(BigInteger)
+
+
+class Warn(Base):
+    __tablename__ = "warn"
+    warn_id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column()
+    chat_id: Mapped[int] = mapped_column()
+    reason: Mapped[str] = mapped_column()
+    date: Mapped[int] = mapped_column(BigInteger)
+
+
+class NickName(Base):
+    __tablename__ = "nickname"
+    nickname_id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column()
+    chat_id: Mapped[int] = mapped_column()
+    nickname: Mapped[str] = mapped_column()
 
 
      
