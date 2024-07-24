@@ -10,6 +10,7 @@ from aiogram.filters import CommandStart, Command
 from src.group.module.start import StartBot
 from src.group.module.mute import Mute, UnMute
 from src.group.module.ban import Ban, UnBan
+from src.group.module.warn import Warn, UnWarn
 
 
 class UserRouter:
@@ -28,6 +29,9 @@ class UserRouter:
         self.router.message.register(self._ban, Command('ban'))
         self.router.message.register(self._unban, Command('unban'))
 
+        self.router.message.register(self._warn, Command('warn'))
+        self.router.message.register(self._unwarn, Command('unwarn'))
+
         self.router.message.register(self._add_user, F.text)
 
     async def start_command(self, message: Message):
@@ -45,5 +49,10 @@ class UserRouter:
         await Ban.ban(message, self.bot)
     async def _unban(self, message: Message):
         await UnBan.unban(message, self.bot)
+
+    async def _warn(self, message: Message):
+        await Warn.warn(message, self.bot)
+    async def _unwarn(self, message: Message):
+        await UnWarn.unwarn(message, self.bot)
 
 

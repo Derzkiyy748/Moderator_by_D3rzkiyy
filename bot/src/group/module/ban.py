@@ -115,6 +115,7 @@ class UnBan:
         if int(user_rank) >= 2:
             if int(user_rank) >= int(user_to_unban_rank):
                 with suppress(TelegramBadRequest):
+                    await db.unban_user(user_id_to_unban, chats_id, reason)
                     await bot.unban_chat_member(chats_id, user_id_to_unban)
                     await message.reply(f'Пользователь {user_id_to_unban} был разбанен по причине: {reason}.')
             else:

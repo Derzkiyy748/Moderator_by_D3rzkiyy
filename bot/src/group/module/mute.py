@@ -102,11 +102,10 @@ class UnMute:
         parts = message.text.split()
         
         # Проверка количества аргументов
-        if len(parts) < 1:
+        if len(parts) < 3:
             await message.reply('Недостаточно аргументов для выполнения команды.')
             return
 
-        # Проверка и получение времени
         try:
             user_id_to_unmute = int(parts[1])
         except ValueError:
@@ -115,16 +114,26 @@ class UnMute:
 
         user_rank = await db.get_user_rank(user_id, chats_id)
         user_to_unmute_rank = await db.get_user_rank(user_id_to_unmute, chats_id)
+        reason_appealed = ' '.join(parts[2:])  # Объединяем все оставшиеся части в строку
 
         if int(user_rank) >= 1:
             if int(user_rank) >= int(user_to_unmute_rank):
-                with suppress(TelegramBadRequest):
-                    await bot.restrict_chat_member(chats_id, user_id_to_unmute, permissions=ChatPermissions(can_send_messages=True))
-                    await message.reply(f'Пользователь {user_id_to_unmute} был размучен.')
+                success = await db.unmute_user(user_id_to_unmute, chats_id, reason_appealed)
+                if success:
+                    with suppress(TelegramBadRequest):
+                        await bot.restrict_chat_member(
+                            chats_id, 
+                            user_id_to_unmute, 
+                            permissions=ChatPermissions(can_send_messages=True)
+                        )
+                        await message.reply(f'Пользователь {user_id_to_unmute} был размучен по причине: {reason_appealed}.')
+                else:
+                    await message.reply('Не удалось найти запись о мьюте для данного пользователя или он уже размучен.')
             else:
                 await message.reply('Вы не можете размьютить данного пользователя.')
         else:
             await message.reply('Вы не можете использовать эту команду.')
+
 
 
 
