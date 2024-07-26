@@ -9,6 +9,7 @@ from aiogram.types import ChatPermissions, Message
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandObject
+from aiogram.utils.markdown import hlink
 
 from src.group.request import DatabaseGroup
 import time
@@ -49,7 +50,7 @@ class Mute:
         chats_id = message.chat.id
         user_id = message.from_user.id
 
-        parts = message.text.split()
+        parts = message.text.split(maxsplit=3)
         
         # Проверка количества аргументов
         if len(parts) < 4:
@@ -71,12 +72,23 @@ class Mute:
             await message.reply('Неправильный формат user_id. Пожалуйста, укажите корректный user_id.')
             return
 
+        user_to_mute_nick = await db.get_nick(user_id_to_mute, chats_id)
+        user_nick = await db.get_nick(user_id, chats_id)
+
         user_rank = await db.get_user_rank(user_id, chats_id)
         user_to_mute_rank = await db.get_user_rank(user_id_to_mute, chats_id)
+    
+
+        user_to_mute = await db.get_user(user_id_to_mute, chats_id)
+        user = await db.get_user(user_id, chats_id)
+
+        r = hlink(f'{user_to_mute_nick}', f'https://t.me/{user_to_mute.username}')
+        e = hlink(f'{user_nick}', f'https://t.me/{user.username}')
 
         if int(user_rank) >= 1:
             if int(user_rank) >= int(user_to_mute_rank):
                 with suppress(TelegramBadRequest):
+                    
 
                     # Используем правильную переменную `until_date`
                     await bot.restrict_chat_member(
@@ -85,7 +97,9 @@ class Mute:
                         until_date=until_date,
                         permissions=ChatPermissions(can_send_messages=False)
                     )
-                    await message.reply(f'Пользователь {user_id_to_mute} был замучен на {parts[2]} по причине: {reason}\n\nВремя разблокировки: {until_date}')
+                    await message.reply(f'участник {r} был замучен пользователем {e} по причине: {reason}\nВремя разблокировки: {until_date}.',
+                                        parse_mode='html', disable_web_page_preview=True)
+
                     await db.mute_user(user_id_to_mute, chats_id, until_date, reason)
             else:
                 await message.reply('Вы не можете замьютить данного пользователя.')
@@ -111,10 +125,19 @@ class UnMute:
         except ValueError:
             await message.reply('Неправильный формат user_id. Пожалуйста, укажите корректный user_id.')
             return
+        
+        user_nick = await db.get_nick(user_id, chats_id)
+        user_to_unmute_nick = await db.get_nick(user_id_to_unmute, chats_id)
 
         user_rank = await db.get_user_rank(user_id, chats_id)
         user_to_unmute_rank = await db.get_user_rank(user_id_to_unmute, chats_id)
         reason_appealed = ' '.join(parts[2:])  # Объединяем все оставшиеся части в строку
+
+        user_to_unmute = await db.get_user(user_id_to_unmute, chats_id)
+        user = await db.get_user(user_id, chats_id)
+
+        r = hlink(f'{user_to_unmute_nick}', f'https://t.me/{user_to_unmute.username}')
+        e = hlink(f'{user_nick}', f'https://t.me/{user.username}')
 
         if int(user_rank) >= 1:
             if int(user_rank) >= int(user_to_unmute_rank):
@@ -126,7 +149,11 @@ class UnMute:
                             user_id_to_unmute, 
                             permissions=ChatPermissions(can_send_messages=True)
                         )
-                        await message.reply(f'Пользователь {user_id_to_unmute} был размучен по причине: {reason_appealed}.')
+                        await message.reply(
+                        f'{r} был размучен пользователем {e} по причине: {reason_appealed}.',
+                        parse_mode='html'
+                    )
+
                 else:
                     await message.reply('Не удалось найти запись о мьюте для данного пользователя или он уже размучен.')
             else:

@@ -7,10 +7,14 @@ from aiogram import Bot, Dispatcher, Router
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart, Command
 
+from src.group.module.zov import Zov
+from src.group.module.staff import Staff
 from src.group.module.start import StartBot
 from src.group.module.mute import Mute, UnMute
 from src.group.module.ban import Ban, UnBan
 from src.group.module.warn import Warn, UnWarn
+from src.group.module.nickname import NickName, UnNickName
+from src.group.module.rank import RankForward
 
 
 class UserRouter:
@@ -31,6 +35,18 @@ class UserRouter:
 
         self.router.message.register(self._warn, Command('warn'))
         self.router.message.register(self._unwarn, Command('unwarn'))
+
+        self.router.message.register(self._snick, Command('snick'))
+        self.router.message.register(self._rnick, Command('rnick'))
+
+        self.router.message.register(self._gmoder, Command('gmoder'))
+        self.router.message.register(self._gadmin, Command('gadmin'))
+        self.router.message.register(self._gsenadmin, Command('gsenadmin'))
+        self.router.message.register(self._gspec, Command('gspec'))
+
+        self.router.message.register(self._staff, Command('staff'))
+
+        self.router.message.register(self._zov, Command('zov'))
 
         self.router.message.register(self._add_user, F.text)
 
@@ -54,5 +70,25 @@ class UserRouter:
         await Warn.warn(message, self.bot)
     async def _unwarn(self, message: Message):
         await UnWarn.unwarn(message, self.bot)
+
+    async def _snick(self, message: Message):
+        await NickName.snick(message, self.bot)
+    async def _rnick(self, message: Message):
+        await UnNickName.rnick(message, self.bot)
+
+    async def _gmoder(self, message: Message):
+        await RankForward.rank_gmoder(message, self.bot)
+    async def _gadmin(self, message: Message):
+        await RankForward.rank_gadmin(message, self.bot)
+    async def _gsenadmin(self, message: Message):
+        await RankForward.rank_gsenadmin(message, self.bot)
+    async def _gspec(self, message: Message):
+        await RankForward.rank_gspec(message, self.bot)
+
+    async def _staff(self, message: Message):
+        await Staff.staff(message, self.bot)
+
+    async def _zov(self, message: Message):
+        await Zov.zov(message, self.bot)
 
 

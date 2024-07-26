@@ -9,6 +9,7 @@ from aiogram.types import ChatPermissions, Message
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandObject
+from aiogram.utils.markdown import hlink
 
 from src.group.request import DatabaseGroup
 from src.group.module.mute import Mute
@@ -69,9 +70,18 @@ class Ban:
         except ValueError:
             await message.reply('Неправильный формат user_id. Пожалуйста, укажите корректный user_id.')
             return
+        
+        user_nick = await db.get_nick(user_id, chats_id)
+        user_to_ban_nick = await db.get_nick(user_id_to_ban, chats_id)
 
         user_rank = await db.get_user_rank(user_id, chats_id)
         user_to_ban_rank = await db.get_user_rank(user_id_to_ban, chats_id)
+
+        user = await db.get_user(user_id, chats_id)
+        user_to_ban = await db.get_user(user_id_to_ban, chats_id)
+
+        r = hlink(f'{user_to_ban_nick}', f'https://t.me/{user_to_ban.username}')
+        e = hlink(f'{user_nick}', f'https://t.me/{user.username}')
 
         if int(user_rank) >= 2:
             if int(user_rank) >= int(user_to_ban_rank):
@@ -81,7 +91,7 @@ class Ban:
                                               until_date=until_date)
                     
                     await db.ban_user(user_id_to_ban, chats_id, until_date, reason)
-                    await message.reply(f'Пользователь {user_id_to_ban} был забанен на {parts[2]} по причине: {reason}\n\nВремя разблокировки: {until_date}')
+                    await message.reply(f'участник {r} был забанен пользователем {e} по причине: {reason}\nВремя разблокировки: {until_date}.', parse_mode='html')
             else:
                 await message.reply('Вы не можете забанить данного пользователя.')
         else:
@@ -91,10 +101,14 @@ class Ban:
 class UnBan:
     @staticmethod
     async def unban(message: Message, bot: Bot, command: CommandObject | None = None):
+
+        '''
+        ERROR!! участник <a href="https://t.me/D3rzkiyy">D3rzkiyy</a> был разбанен пользователем <a href="https://t.me/khavr_global">khavr_global</a> по причине: sorry
+        '''
         chats_id = message.chat.id
         user_id = message.from_user.id
 
-        parts = message.text.split()
+        parts = message.text.split(maxsplit=2)
         
         # Проверка количества аргументов
         if len(parts) < 3:
@@ -109,15 +123,25 @@ class UnBan:
         
         reason = parts[2]
 
+        user_nick = await db.get_nick(user_id, chats_id)
+        user_to_unban_nick = await db.get_nick(user_id_to_unban, chats_id)
+
         user_rank = await db.get_user_rank(user_id, chats_id)
         user_to_unban_rank = await db.get_user_rank(user_id_to_unban, chats_id)
+
+        user = await db.get_user(user_id, chats_id)
+        user_to_unban = await db.get_user(user_id_to_unban, chats_id)
+
+        r = hlink(f'{user_to_unban_nick}', f'https://t.me/{user_to_unban.username}')
+        e = hlink(f'{user_nick}', f'https://t.me/{user.username}')
 
         if int(user_rank) >= 2:
             if int(user_rank) >= int(user_to_unban_rank):
                 with suppress(TelegramBadRequest):
                     await db.unban_user(user_id_to_unban, chats_id, reason)
                     await bot.unban_chat_member(chats_id, user_id_to_unban)
-                    await message.reply(f'Пользователь {user_id_to_unban} был разбанен по причине: {reason}.')
+                    await message.reply(f'участник {r} был разбанен пользователем {e} по причине: {reason}',
+                                        parse_mode='html', disable_web_page_preview=True)
             else:
                 await message.reply('Вы не можете разбанить данного пользователя.')
         else:

@@ -30,7 +30,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(50))
     chat_id: Mapped[int] = mapped_column()
     nick: Mapped[str] = mapped_column(default="")
-    rank: Mapped[str] = mapped_column(default=0)
+    rank: Mapped[int] = mapped_column(default=0)
 
 
 class Chat(Base):

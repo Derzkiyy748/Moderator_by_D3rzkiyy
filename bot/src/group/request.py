@@ -1,9 +1,9 @@
 import datetime
-from sqlalchemy import BigInteger, ForeignKey, String,  Column, Integer, select, insert
+from sqlalchemy import BigInteger, ForeignKey, String,  Column, Integer, delete, select, insert, update
 from sqlalchemy.orm import relationship, Mapped, mapped_column, DeclarativeBase
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 
-from database.models import Warn, async_session, Chat, User, Mute, Ban
+from database.models import NickName, Warn, async_session, Chat, User, Mute, Ban
 
 from aiogram import Bot
 from aiogram.types import ChatMemberOwner
@@ -50,6 +50,13 @@ class DatabaseGroup:
             except Exception as e:
                 await session.rollback()
                 raise e
+            
+
+    @staticmethod
+    async def get_user(user_id: int, chat_id: int):
+        async with async_session() as session:
+            res = await session.execute(select(User).where(User.user_id == user_id, User.chat_id == chat_id))
+            return res.scalar_one_or_none()
             
 
     @staticmethod
@@ -197,6 +204,101 @@ class DatabaseGroup:
                     await session.commit()
                     return True
                 return False
+            
+    @staticmethod
+    async def get_nick(user_id: int, chat_id: int) -> str:
+        async with async_session() as session: 
+            result = await session.execute(
+                select(User.nick).where(User.user_id == user_id, User.chat_id == chat_id))
+
+            result_2 = await session.execute(select(User.username).where(User.user_id == user_id, User.chat_id == chat_id))
+            
+            nick = result.scalar_one_or_none()
+            username = result_2.scalar_one_or_none()
+
+            if nick == None:
+                return username
+            else:
+                return username
+            
+    @staticmethod
+    async def set_nick(user_id: int, chat_id: int, nick: str) -> bool:
+        async with async_session() as session:
+            # Проверяем, существует ли ник у пользователя в таблице NickName
+            result = await session.execute(
+                select(NickName).where(NickName.user_id == user_id, NickName.chat_id == chat_id)
+            )
+            existing_nick = result.scalar_one_or_none()
+
+            if existing_nick != None:
+                # Если ник существует, удаляем старую запись в таблице NickName и сасдаем новаю
+                await session.execute(
+                    delete(NickName).where(NickName.user_id == user_id, NickName.chat_id == chat_id)
+                )
+                await session.execute(
+                    insert(NickName).values(user_id=user_id, chat_id=chat_id, nickname=nick)
+                )
+                await session.commit()
+            else:
+                # Если ника нет, просто сасдаем новаю
+                await session.execute(
+                    insert(NickName).values(user_id=user_id, chat_id=chat_id, nickname=nick)
+                )
+
+            # Обновляем ник в таблице User | бро, это не гпт, это я ебусь с коммами
+            await session.execute(
+                update(User).where(User.user_id == user_id, User.chat_id == chat_id).values(nick=nick)
+
+            )
+            await session.commit()
+
+        #await session.commit()
+        #return True
+
+
+    @staticmethod
+    async def del_nick(user_id: int, chat_id: int) -> bool:
+        async with async_session() as session:
+            await session.execute(
+                delete(NickName).where(NickName.user_id == user_id, NickName.chat_id == chat_id)
+            )
+            await session.execute(
+                update(User).where(User.user_id == user_id, User.chat_id == chat_id).values(nick=None)
+            )
+            await session.commit()
+
+
+    @staticmethod
+    async def rank_up(user_id: int, chat_id: int, rank: int) -> None:
+        async with async_session() as session:
+            await session.execute(
+                        update(User).where(User.user_id == user_id, User.chat_id == chat_id).values(rank=rank)
+                    )
+            await session.commit()
+
+    """
+    rank_back
+    """
+
+
+    @staticmethod
+    async def staff(chat_id: int) -> list:
+        async with async_session() as session:
+            result = await session.execute(
+                select(User.user_id, User.nick, User.username).where(User.chat_id == chat_id, User.rank >= 1)
+            )
+            staff = result.all()
+            return [(user_id, nick, username) for user_id, nick, username in staff]
+
+                
+    @staticmethod
+    async def zov_user(chat_id: int) -> list:
+        async with async_session() as session:
+            result = await session.execute(
+                select(User.user_id, User.nick, User.username).where(User.chat_id == chat_id)
+            )
+            users = result.all()
+            return [(user_id, nick, username) for user_id, nick, username in users]
 
 
 
