@@ -1,39 +1,31 @@
-from aiogram import Bot
+
 from contextlib import suppress
 import logging
+from aiogram import Bot
 from aiogram.types import Message
 
 from datetime import datetime, timedelta
 
-from aiogram.types import Message, CallbackQuery
+
 from aiogram.exceptions import TelegramBadRequest
-
-from aiogram.filters import CommandObject
-
 from src.group.request import DatabaseGroup
+from src.group.module.other_functions import RankToUser
 from pymorphy2 import MorphAnalyzer
-from src.group.module.rank import RankToUser
 
 
-db = DatabaseGroup()
+from aiogram.utils.markdown import hlink
+
+
 r = RankToUser()
+db = DatabaseGroup()
 
-class StartBot:
 
+class FilterWords:
     @staticmethod
-    async def start(message: Message, bot: Bot, command: CommandObject | None = None):
-        if await db.registered_chats(message.chat.id, message.chat.title):
-            await bot.send_message(message.chat.id, "Привет, я бот для управления группой!\nДанная группа уже зарегистрирована")
-        else:
-            await bot.send_message(message.chat.id, "Привет, я бот для управления группой!\nДанная группа успешно зарегистрирована")
-
+    async def filter(message: Message, bot: Bot):
         
-    @staticmethod
-    async def add_usere(message: Message, bot: Bot, command: CommandObject | None = None):
-        await db.add_user(message.from_user.id, message.chat.id, message.from_user.username, bot)
-        
-
         chat_id = message.chat.id
+        text = message.text.lower()
         user_id = message.from_user.id  # Получение user_id пользователя
 
         morph = MorphAnalyzer(lang='ru')
@@ -72,12 +64,3 @@ class StartBot:
                         with suppress(TelegramBadRequest):
                             await bot.ban_chat_member(chat_id, user_id, until_date=until_date)
                             await message.reply(f'{user_mention} был забанен на 7 дней за превышение количества предупреждений (3/3).')
-            
-
-
-
-
-
-
-
-        

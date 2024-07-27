@@ -7,13 +7,14 @@ from aiogram import Bot, Dispatcher, Router
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart, Command
 
+from src.group.module.clear import ClearMessage
 from src.group.module.zov import Zov
 from src.group.module.staff import Staff
 from src.group.module.start import StartBot
-from src.group.module.mute import Mute, UnMute
-from src.group.module.ban import Ban, UnBan
-from src.group.module.warn import Warn, UnWarn
-from src.group.module.nickname import NickName, UnNickName
+from src.group.module.mute import Mute, UnMute, MuteList
+from src.group.module.ban import Ban, UnBan, BanList, SearchBan
+from src.group.module.warn import Warn, UnWarn, SearchWarn, WarnList
+from src.group.module.nickname import NickName, UnNickName, SearchNickName, RemoveNickName
 from src.group.module.rank import RankForward
 
 
@@ -38,6 +39,7 @@ class UserRouter:
 
         self.router.message.register(self._snick, Command('snick'))
         self.router.message.register(self._rnick, Command('rnick'))
+        self.router.message.register(self._rnickall, Command('rnickall'))
 
         self.router.message.register(self._gmoder, Command('gmoder'))
         self.router.message.register(self._gadmin, Command('gadmin'))
@@ -47,6 +49,20 @@ class UserRouter:
         self.router.message.register(self._staff, Command('staff'))
 
         self.router.message.register(self._zov, Command('zov'))
+
+        self.router.message.register(self._gnick, Command('gnick'))
+
+        self.router.message.register(self._gwarn, Command('gwarn'))
+
+        self.router.message.register(self._wlist, Command('wlist'))
+
+        self.router.message.register(self._mlist , Command('mlist'))
+
+        self.router.message.register(self._blist, Command('blist'))
+
+        self.router.message.register(self._clear, Command('clear'))
+
+        self.router.message.register(self._getban, Command('getban'))
 
         self.router.message.register(self._add_user, F.text)
 
@@ -75,6 +91,8 @@ class UserRouter:
         await NickName.snick(message, self.bot)
     async def _rnick(self, message: Message):
         await UnNickName.rnick(message, self.bot)
+    async def _rnickall(self, message: Message):
+        await RemoveNickName.rnickall(message, self.bot)
 
     async def _gmoder(self, message: Message):
         await RankForward.rank_gmoder(message, self.bot)
@@ -90,5 +108,27 @@ class UserRouter:
 
     async def _zov(self, message: Message):
         await Zov.zov(message, self.bot)
+
+    async def _gnick(self, message: Message):
+        await SearchNickName.search_gnick(message, self.bot)
+
+    async def _gwarn(self, message: Message):
+        await SearchWarn.search_warn(message, self.bot)
+
+    async def _wlist(self, message: Message):
+        await WarnList.list_warns(message, self.bot)
+
+    async def _mlist(self, message: Message):
+        await MuteList.mute_list(message, self.bot)
+
+    async def _blist(self, message: Message):
+        await BanList.ban_list(message, self.bot)
+
+    async def _clear(self, message: Message):
+        await ClearMessage.clear(message, self.bot)
+
+    async def _getban(self, message: Message):
+        await SearchBan.search_ban(message, self.bot)
+
 
 

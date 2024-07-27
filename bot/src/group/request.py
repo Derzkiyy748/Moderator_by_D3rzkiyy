@@ -1,4 +1,5 @@
 import datetime
+from typing import List
 from sqlalchemy import BigInteger, ForeignKey, String,  Column, Integer, delete, select, insert, update
 from sqlalchemy.orm import relationship, Mapped, mapped_column, DeclarativeBase
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
@@ -177,7 +178,7 @@ class DatabaseGroup:
         
 
     @staticmethod
-    async def unwarn_user(user_id: int, chat_id: int) -> bool:
+    async def unwarn_user(user_id: int, chat_id: int):
         async with async_session() as session:
             async with session.begin():
                 # Найти последнюю запись предупреждения для пользователя
@@ -301,5 +302,106 @@ class DatabaseGroup:
             return [(user_id, nick, username) for user_id, nick, username in users]
 
 
+    @staticmethod
+    async def search_nick(user_id: str, chat_id: int) -> User:
+        async with async_session() as session:
+            result = await session.execute(
+                select(User).where(User.user_id == user_id, User.chat_id == chat_id)
+            )
+            return result.scalar_one_or_none()
+        
 
+    @staticmethod
+    async def get_warns(user_id: int, chat_id: int) -> Warn:
+        async with async_session() as session:
+            result = await session.execute(
+                select(Warn).where(Warn.user_id == user_id, Warn.chat_id == chat_id)
+            )
+            warn = result.scalar_one_or_none()
+            return warn
+        
+    @staticmethod
+    async def get_all_warns(chat_id: int) -> list:
+        async with async_session() as session:
+            result = await session.execute(
+                select(Warn).where(Warn.chat_id == chat_id)
+            )
+            warns = result.scalars().all()
+            return warns
+        
+    @staticmethod
+    async def get_muted_users(chat_id: int) -> list[Mute]:
+        async with async_session() as session:
+            result = await session.execute(
+                select(Mute).where(Mute.chat_id == chat_id).order_by(Mute.user_id, Mute.date.desc())
+            )
+            muted_users = result.scalars().all()
+
+            # Используем словарь для хранения последнего мьюта каждого пользователя
+            unique_users = {}
+            for mute in muted_users:
+                if mute.user_id not in unique_users:
+                    unique_users[mute.user_id] = mute
+
+            return list(unique_users.values())
+        
+
+    @staticmethod
+    async def get_ban_users(chat_id: int) -> list[Ban]:
+        async with async_session() as session:
+            result = await session.execute(
+                select(Ban).where(Mute.chat_id == chat_id).order_by(Ban.user_id, Ban.date.desc())
+            )
+            muted_users = result.scalars().all()
+
+            # Используем словарь для хранения последнего мьюта каждого пользователя
+            unique_users = {}
+            for ban in muted_users:
+                if ban.user_id not in unique_users:
+                    unique_users[ban.user_id] = ban
+
+            return list(unique_users.values())
+        
+    @staticmethod
+    async def search_ban(user_id: int, chat_id: int) -> Ban:
+        async with async_session() as session:
+
+                result = await session.execute(
+                    select(Ban)
+                    .where(Ban.user_id == user_id, Ban.chat_id == chat_id)
+                    .order_by(Ban.ban_id.desc())  # Замените на ваше поле времени создания
+                    .limit(1)  # Возвращаем только одну запись
+                )
+                ban = result.scalar_one_or_none()
+                return ban
+        
+    
+    @staticmethod
+    async def del_all_nick(chat_id: int) -> None:
+        async with async_session() as session:
+            await session.execute(
+                delete(NickName).where(NickName.chat_id == chat_id)
+            )
+            await session.execute(
+                update(User).where(User.chat_id == chat_id).values(nick=None)
+            )
+            await session.commit()
+            return True
+        
+
+    @staticmethod
+    async def get_filter_words(chat_id: int) -> List[str]:
+        async with async_session() as session:
+            result = await session.execute(
+                select(Chat).where(Chat.chat_id == chat_id)
+            )
+            chat = result.scalar_one_or_none()
+            if chat and hasattr(chat, 'filter_words'):
+                # Проверим, является ли filter_words списком
+                if isinstance(chat.filter_words, list):
+                    return chat.filter_words
+                # Если filter_words является строкой, разбиваем её по запятым
+                elif isinstance(chat.filter_words, str):
+                    return chat.filter_words.split(',')
+            return []
     

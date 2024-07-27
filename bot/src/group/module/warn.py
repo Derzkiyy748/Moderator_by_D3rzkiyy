@@ -126,5 +126,79 @@ class UnWarn:
             await message.reply('Вы не можете использовать эту команду.')
 
 
+class SearchWarn:
+    @staticmethod
+    async def search_warn(message: Message, bot: Bot, command: CommandObject | None = None):
+        chat_id = message.chat.id
+        user_id = message.from_user.id
+
+        parts = message.text.split()
+
+        if len(parts) < 2:
+            return await message.reply("Использование: /gwarn <id пользователя>")
+
+        user_id_to_search = int(parts[1])
+
+        user_rank = await db.get_user_rank(user_id, chat_id)
+        user = await db.get_user(user_id, chat_id)
+
+        if int(user_rank) >= 1:
+            war = await db.get_warns(user_id_to_search, chat_id)
+            user_to_search = await db.get_user(user_id_to_search, chat_id)
+
+            if user_to_search:
+                user_link = hlink(f'{user_to_search.nick}' if user_to_search.nick else f'{user_to_search.username}', f'https://t.me/{user_to_search.username}')
+
+                if war:
+                    reasons = [war.reason_1, war.reason_2, war.reason_3]
+                    reasons = [reason for reason in reasons if reason.strip()]  # Удаление пустых причин
+                    warn_list = "\n".join(reasons)
+                    await message.reply(f'Предупреждения {user_link}:\n\nКоличество предупреждений: {war.count_warn}\nПричины:\n{warn_list}', parse_mode='HTML',
+                                        disable_web_page_preview=True)
+                else:
+                    await message.reply(f'У {user_link} нет предупреждений.', parse_mode='HTML',
+                                        disable_web_page_preview=True)
+            else:
+                await message.reply('Пользователь с таким ID не найден.')
+        else:
+            await message.reply('У вас нет прав для использования этой команды.')
+
+
+class WarnList:
+    @staticmethod
+    async def list_warns(message: Message, bot: Bot, command: CommandObject | None = None):
+        chat_id = message.chat.id
+        user_id = message.from_user.id
+
+        user_rank = await db.get_user_rank(user_id, chat_id)
+        user = await db.get_user(user_id, chat_id)
+
+        if int(user_rank) >= 1:
+            warns = await db.get_all_warns(chat_id)
+            if warns:
+                warn_details = []
+                for warn in warns:
+                    if warn:  # Проверка на None
+                        user_to_search = await db.get_user(warn.user_id, chat_id)
+                        if user_to_search:  # Проверка на None
+                            user_link = hlink(f'{user_to_search.nick}' if user_to_search.nick else f'{user_to_search.username}', f'https://t.me/{user_to_search.username}')
+                            reasons = [warn.reason_1, warn.reason_2, warn.reason_3]
+                            reasons = [reason for reason in reasons if reason.strip()]  # Удаление пустых причин
+                            warn_list = "\n".join(reasons)
+                            warn_details.append(f'{user_link} - Количество предупреждений: {warn.count_warn}\nПричины:\n{warn_list}')
+                
+                if warn_details:
+                    warn_message = "\n\n".join(warn_details)
+                    await message.reply(f'Список предупреждений пользователей:\n\n{warn_message}', parse_mode='HTML',
+                                        disable_web_page_preview=True)
+                else:
+                    await message.reply('В этом чате нет предупреждений.')
+            else:
+                await message.reply('В этом чате нет предупреждений.')
+        else:
+            await message.reply('У вас нет прав для использования этой команды.')
+
+
+
 
                 
