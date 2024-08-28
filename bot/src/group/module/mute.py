@@ -15,7 +15,7 @@ from src.group.request import DatabaseGroup
 from src.group.module.other_functions import RankToUser
 import time
 
-r = RankToUser()
+g = RankToUser()
 db = DatabaseGroup()
 
 
@@ -78,8 +78,8 @@ class Mute:
         user_to_mute_nick = await db.get_nick(user_id_to_mute, chats_id)
         user_nick = await db.get_nick(user_id, chats_id)
 
-        user_rank = await db.get_user_rank(user_id, chats_id)
-        user_to_mute_rank = await db.get_user_rank(user_id_to_mute, chats_id)
+        user_rank = await db.get_user_rank_1(user_id, chats_id)
+        user_to_mute_rank = await db.get_user_rank_1(user_id_to_mute, chats_id)
     
 
         user_to_mute = await db.get_user(user_id_to_mute, chats_id)
@@ -92,8 +92,8 @@ class Mute:
             if int(user_rank) >= int(user_to_mute_rank):
                 with suppress(TelegramBadRequest):
 
-                    p = await r.rank_(user_id, chats_id)
-                    p_1 = await r.rank_(user_id_to_mute, chats_id)
+                    p = await g.rank_(user_id, chats_id)
+                    p_1 = await g.rank_(user_id_to_mute, chats_id)
 
                     # Используем правильную переменную `until_date`
                     await bot.restrict_chat_member(
@@ -134,8 +134,8 @@ class UnMute:
         user_nick = await db.get_nick(user_id, chats_id)
         user_to_unmute_nick = await db.get_nick(user_id_to_unmute, chats_id)
 
-        user_rank = await db.get_user_rank(user_id, chats_id)
-        user_to_unmute_rank = await db.get_user_rank(user_id_to_unmute, chats_id)
+        user_rank = await db.get_user_rank_1(user_id, chats_id)
+        user_to_unmute_rank = await db.get_user_rank_1(user_id_to_unmute, chats_id)
         reason_appealed = ' '.join(parts[2:])  # Объединяем все оставшиеся части в строку
 
         user_to_unmute = await db.get_user(user_id_to_unmute, chats_id)
@@ -149,15 +149,15 @@ class UnMute:
                 success = await db.unmute_user(user_id_to_unmute, chats_id, reason_appealed)
                 if success:
                     with suppress(TelegramBadRequest):
-                        p = await r.rank_(user_id, chats_id)
-                        p_1 = await r.rank_(user_id_to_unmute, chats_id)
+                        p = await g.rank_(user_id, chats_id)
+                        p_1 = await g.rank_(user_id_to_unmute, chats_id)
                         await bot.restrict_chat_member(
                             chats_id, 
                             user_id_to_unmute, 
                             permissions=ChatPermissions(can_send_messages=True)
                         )
                         await message.reply(
-                        f'{p_1} {r} был размучен {p} {e} по причине: {reason_appealed}.',
+                        f'{p_1} {re} был размучен {p} {e} по причине: {reason_appealed}.',
                         parse_mode='html', disable_web_page_preview=True
                     )
 
@@ -176,7 +176,7 @@ class MuteList:
         chat_id = message.chat.id
         user_id = message.from_user.id
 
-        user_rank = await db.get_user_rank(user_id, chat_id)
+        user_rank = await db.get_user_rank_1(user_id, chat_id)
 
         if int(user_rank) >= 1:
             muted_users = await db.get_muted_users(chat_id)

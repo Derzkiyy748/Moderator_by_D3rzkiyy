@@ -26,9 +26,10 @@ class Base(AsyncAttrs, DeclarativeBase):
 # Определение модели данных для пользователя
 class User(Base):
     __tablename__ = "users"
-    user_id: Mapped[int] = mapped_column(primary_key=True)
+    rk_id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column()
     username: Mapped[str] = mapped_column(String(50))
-    chat_id: Mapped[int] = mapped_column()
+    chat_id: Mapped[int] = mapped_column(default=0)
     nick: Mapped[str] = mapped_column(default="")
     rank: Mapped[int] = mapped_column(default=0)
 
@@ -39,6 +40,7 @@ class Chat(Base):
     chat_name: Mapped[str] = mapped_column(String(50))
     antiflood: Mapped[int] = mapped_column(default=0)
     filter_words: Mapped[str] = mapped_column(default="")
+    welcome_message: Mapped[str] = mapped_column(default="Добро пожаловать!")
 
 
 class Ban(Base):

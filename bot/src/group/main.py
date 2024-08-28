@@ -14,11 +14,16 @@ from src.group.module.start import StartBot
 from src.group.module.mute import Mute, UnMute, MuteList
 from src.group.module.ban import Ban, UnBan, BanList, SearchBan
 from src.group.module.warn import Warn, UnWarn, SearchWarn, WarnList
-from src.group.module.nickname import NickName, UnNickName, SearchNickName, RemoveNickName
-from src.group.module.rank import RankForward
+from src.group.module.nickname import NickName, UnNickName, SearchNickName, RemoveNickName, NickNameList
+from src.group.module.rank import RankForward, RankBack
+from src.group.module.fliter import FilterWords, FilterWordsList
+from src.group.module.antiflood import AddMessage
+from src.group.module.welcom import WelcomeMessage
+from src.group.module.id import IdUser
+from src.group.module.help import HelpCommand
 
 
-class UserRouter:
+class UserRouterGroup:
     def __init__(self, bot: Bot):
         self.bot = bot
         self.router = Router()
@@ -45,6 +50,10 @@ class UserRouter:
         self.router.message.register(self._gadmin, Command('gadmin'))
         self.router.message.register(self._gsenadmin, Command('gsenadmin'))
         self.router.message.register(self._gspec, Command('gspec'))
+        self.router.message.register(self._editowner, Command('editowner'))
+        self.router.message.register(self._rank_back, Command('rrole'))
+
+        self.router.message.register(self._snick, Command('snick'))
 
         self.router.message.register(self._staff, Command('staff'))
 
@@ -55,14 +64,29 @@ class UserRouter:
         self.router.message.register(self._gwarn, Command('gwarn'))
 
         self.router.message.register(self._wlist, Command('wlist'))
-
         self.router.message.register(self._mlist , Command('mlist'))
-
         self.router.message.register(self._blist, Command('blist'))
+        self.router.message.register(self._nlist, Command('nlist'))
 
         self.router.message.register(self._clear, Command('clear'))
 
         self.router.message.register(self._getban, Command('getban'))
+
+        self.router.message.register(self._filter, Command('filter'))
+        self.router.message.register(self._filterlist, Command('filterlist'))
+
+        self.router.message.register(self._antiflood, Command('antiflood'))
+
+        self.router.message.register(self._welcome, Command('welcometext'))
+
+        self.router.message.register(self._id, Command('id'))
+
+        self.router.message.register(self._help, Command('help'))
+
+        self.router.callback_query.register(self._help_detail, F.data.startswith('help_'))
+        self.router.callback_query.register(self._help_back, F.data == 'help_back')
+
+        self.router.message.register(self._welcome_text, F.new_chat_members)
 
         self.router.message.register(self._add_user, F.text)
 
@@ -102,6 +126,12 @@ class UserRouter:
         await RankForward.rank_gsenadmin(message, self.bot)
     async def _gspec(self, message: Message):
         await RankForward.rank_gspec(message, self.bot)
+    async def _editowner(self, message: Message):
+        await RankForward.editowner(message, self.bot)
+
+    async def _rank_back(self, message: Message):
+        await RankBack.rank_back(message, self.bot)
+    
 
     async def _staff(self, message: Message):
         await Staff.staff(message, self.bot)
@@ -129,6 +159,34 @@ class UserRouter:
 
     async def _getban(self, message: Message):
         await SearchBan.search_ban(message, self.bot)
+
+    async def _filter(self, message: Message):
+        await FilterWords.filter(message, self.bot)
+    async def _filterlist(self, message: Message):
+        await FilterWordsList.filter_list(message, self.bot)
+
+    async def _antiflood(self, message: Message):
+        await AddMessage.add_message(message, self.bot)
+
+    async def _welcome(self, message: Message):
+        await WelcomeMessage.welcome(message, self.bot)
+    async def _welcome_text(self, message: Message):
+        await WelcomeMessage.welcome_text(message, self.bot)
+
+    async def _id(self, message: Message):
+        await IdUser.get_id(message, self.bot)
+
+    async def _nlist(self, message: Message):
+        await NickNameList.nicklist(message, self.bot)
+
+    async def _help_detail(self, call: CallbackQuery):
+        await HelpCommand.help_detail(call, self.bot)
+    async def _help(self, message: Message):
+        await HelpCommand.help_menu(message)
+    async def _help_back(self, call: CallbackQuery):
+        await HelpCommand.help_backk(call, self.bot)
+
+    
 
 
 

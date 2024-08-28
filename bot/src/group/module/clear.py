@@ -28,7 +28,7 @@ class ClearMessage:
             await message.reply('Неправильный формат. Пожалуйста, укажите количество сообщений для удаления.')
             return
         
-        user_rank = await db.get_user_rank(user_id, chat_id)
+        user_rank = await db.get_user_rank_1(user_id, chat_id)
 
         # Проверяем права пользователя
         if int(user_rank) >= 1:

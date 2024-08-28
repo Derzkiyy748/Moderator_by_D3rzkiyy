@@ -29,28 +29,25 @@ class DatabaseGroup:
     @staticmethod
     async def add_user(user_id: int, chat_id: int, username: str, bot: Bot):
         async with async_session() as session:
-            try:
+           
+            # Получаем информацию о пользователе в чате
+            member = await bot.get_chat_member(chat_id, user_id)
+            if isinstance(member, ChatMemberOwner):
+                role = '5'
+            else:
+                role = '0'
 
-                member = await bot.get_chat_member(chat_id, user_id)
-                if isinstance(member, ChatMemberOwner):
-                    role = '5'
-                else:
-                    role = '0'
+            # Проверяем, существует ли запись для данного user_id и chat_id
+            res = await session.execute(select(User).where(User.user_id == user_id, User.chat_id == chat_id))
+            user = res.scalar_one_or_none()
 
-                # Исправление: выберите User с правильным условием
-                res = await session.execute(select(User).where(User.user_id == user_id))
-                user = res.scalar_one_or_none()
-
-                if user is None:
-                    user = User(user_id=user_id, chat_id=chat_id, username=username, rank=role)
-                    session.add(user)
-                    await session.commit()
-                    return True
-                else:
-                    return False
-            except Exception as e:
-                await session.rollback()
-                raise e
+            if user is None:
+                # Создаем новую запись для пользователя с новым chat_id
+                user = User(user_id=user_id, chat_id=chat_id, username=username, rank=role)
+                session.add(user)
+                await session.commit()
+                return True
+            return False
             
 
     @staticmethod
@@ -58,16 +55,6 @@ class DatabaseGroup:
         async with async_session() as session:
             res = await session.execute(select(User).where(User.user_id == user_id, User.chat_id == chat_id))
             return res.scalar_one_or_none()
-            
-
-    @staticmethod
-    async def get_user_rank(user_id: int, chat_id: int):
-        async with async_session() as session:
-            res = await session.execute(select(User.rank).where(User.user_id == user_id, User.chat_id == chat_id))
-            user_rank = res.scalar_one_or_none()
-            if user_rank:
-                return user_rank
-            return None
         
 
     @staticmethod
@@ -217,10 +204,10 @@ class DatabaseGroup:
             nick = result.scalar_one_or_none()
             username = result_2.scalar_one_or_none()
 
-            if nick == None:
+            if nick is None:
                 return username
             else:
-                return username
+                return nick
             
     @staticmethod
     async def set_nick(user_id: int, chat_id: int, nick: str) -> bool:
@@ -283,10 +270,10 @@ class DatabaseGroup:
 
 
     @staticmethod
-    async def staff(chat_id: int) -> list:
+    async def staff(chat_id: int, rank: int) -> list:
         async with async_session() as session:
             result = await session.execute(
-                select(User.user_id, User.nick, User.username).where(User.chat_id == chat_id, User.rank >= 1)
+                select(User.user_id, User.nick, User.username).where(User.chat_id == chat_id, User.rank == rank)
             )
             staff = result.all()
             return [(user_id, nick, username) for user_id, nick, username in staff]
@@ -379,14 +366,24 @@ class DatabaseGroup:
     @staticmethod
     async def del_all_nick(chat_id: int) -> None:
         async with async_session() as session:
+            # Удаляем все записи в таблице NickName для данного чата
+            await session.execute(delete(NickName).where(NickName.chat_id == chat_id))
+            await session.commit()
+
             await session.execute(
-                delete(NickName).where(NickName.chat_id == chat_id)
-            )
-            await session.execute(
-                update(User).where(User.chat_id == chat_id).values(nick=None)
+                update(User).where(User.user_id == select(NickName.user_id).where(NickName.chat_id == chat_id)).values(nick="")
             )
             await session.commit()
             return True
+        
+    
+    @staticmethod
+    async def get_chat(chat_id: int) -> Chat:
+        async with async_session() as session:
+            result = await session.execute(
+                select(Chat).where(Chat.chat_id == chat_id)
+            )
+            return result.scalar_one_or_none()
         
 
     @staticmethod
@@ -404,4 +401,102 @@ class DatabaseGroup:
                 elif isinstance(chat.filter_words, str):
                     return chat.filter_words.split(',')
             return []
+        
+
+    @staticmethod
+    async def add_filter_word(chat_id: int, word: str) -> None:
+        async with async_session() as session:
+            result = await session.execute(
+                select(Chat).where(Chat.chat_id == chat_id)
+            )
+            chat = result.scalar_one_or_none()
+            if chat and hasattr(chat, 'filter_words'):
+                if isinstance(chat.filter_words, list):
+                    chat.filter_words.append(word)
+                elif isinstance(chat.filter_words, str):
+                    chat.filter_words = f"{chat.filter_words}, {word}"
+            await session.commit()
+
+
+    @staticmethod
+    async def remove_filter_word(chat_id: int, word: str) -> bool:
+        async with async_session() as session:
+            result = await session.execute(
+                select(Chat).where(Chat.chat_id == chat_id)
+            )
+            chat = result.scalar_one_or_none()
+            if chat and hasattr(chat, 'filter_words'):
+                if isinstance(chat.filter_words, list):
+                    # Приводим все слова к нижнему регистру для корректного сравнения
+                    lowercase_words = [w.lower().strip() for w in chat.filter_words]
+                    if word.lower().strip() in lowercase_words:
+                        chat.filter_words.remove(word.lower().strip())
+                    else:
+                        return False
+                elif isinstance(chat.filter_words, str):
+                    words = [w.strip() for w in chat.filter_words.split(',')]
+                    if word.lower().strip() in [w.lower() for w in words]:
+                        words.remove(word.lower().strip())
+                        chat.filter_words = ', '.join(words)
+                    else:
+                        return False
+            await session.commit()
+            return True
+        
+
+    @staticmethod
+    async def get_limit_message(chat_id: int) -> int:
+        async with async_session() as session:
+            result = await session.execute(
+                select(Chat.antiflood).where(Chat.chat_id == chat_id)
+            )
+            limit_message = result.scalar_one_or_none()
+            if limit_message == 0:
+                return 999
+            else:
+                return limit_message
+            
+
+    @staticmethod
+    async def set_limit_message(chat_id: int, limit: int) -> None:
+        async with async_session() as session:
+            await session.execute(
+                update(Chat).where(Chat.chat_id == chat_id).values(antiflood=limit)
+            )
+            await session.commit()
+
+
+    @staticmethod
+    async def set_welcome_message(chat_id: int, message: str) -> None:
+        async with async_session() as session:
+            await session.execute(
+                update(Chat).where(Chat.chat_id == chat_id).values(welcome_message=message)
+            )
+            await session.commit()
+
+
+    @staticmethod
+    async def get_all_nick(chat_id: int) -> list:
+        async with async_session() as session:
+            result = await session.execute(
+                select(NickName).where(NickName.chat_id == chat_id)
+            )
+            nicknames = result.scalars().all()
+            return nicknames
+        
+
+    @staticmethod
+    async def get_user_rank_1(user_id: int, chat_id: int):
+        async with async_session() as session:
+            res = await session.execute(select(User.rank).where(User.user_id == user_id, User.chat_id == chat_id))
+            user_rank = res.scalar_one_or_none()
+            
+            # Логирование для отладки
+            print(f"get_user_rank_1: user_id={user_id}, chat_id={chat_id}, user_rank={user_rank}")
+            
+            return user_rank if user_rank is not None else 0  # Возвращаем 0, если ранг не найден
+            
+        
+
+    
     

@@ -4,12 +4,15 @@ import sys
 import os
 import time
 
+from middleware.antiflood import AntiFloodMiddleware
+
 from aiogram import Bot, Dispatcher
 from dotenv import load_dotenv
 from database.models import asyn_main
 from misc.config import ADMIN_ID, LOG_CHANNEL_ID  # Убедитесь, что LOG_CHANNEL_ID добавлен в конфигурацию
 
-from src.group.main import UserRouter
+from src.group.main import UserRouterGroup
+from src.private.main import UserRouterPrivate
 
 load_dotenv(dotenv_path="bot/misc/.env")
 
@@ -30,10 +33,14 @@ class MyBot:
     def __init__(self):
         self.token = os.getenv('TOKEN_BOT')
         self.bot = Bot(self.token)
-        self.dp = Dispatcher()  # Передача бота в диспетчер
+        self.dp = Dispatcher()  
 
-        self.user_router = UserRouter(self.bot)
-        self.dp.include_router(self.user_router.router)
+        self.dp.message.middleware(AntiFloodMiddleware(time_limit=60))
+
+        self.user_router = UserRouterGroup(self.bot)
+        self.user_pr = UserRouterPrivate(self.bot)
+        self.dp.include_routers(self.user_router.router,
+                               self.user_pr.router)
 
     async def on_startup(self):
 

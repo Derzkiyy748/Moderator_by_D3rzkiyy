@@ -78,8 +78,8 @@ class Ban:
         user_nick = await db.get_nick(user_id, chats_id)
         user_to_ban_nick = await db.get_nick(user_id_to_ban, chats_id)
 
-        user_rank = await db.get_user_rank(user_id, chats_id)
-        user_to_ban_rank = await db.get_user_rank(user_id_to_ban, chats_id)
+        user_rank = await db.get_user_rank_1(user_id, chats_id)
+        user_to_ban_rank = await db.get_user_rank_1(user_id_to_ban, chats_id)
 
         user = await db.get_user(user_id, chats_id)
         user_to_ban = await db.get_user(user_id_to_ban, chats_id)
@@ -133,8 +133,8 @@ class UnBan:
         user_nick = await db.get_nick(user_id, chats_id)
         user_to_unban_nick = await db.get_nick(user_id_to_unban, chats_id)
 
-        user_rank = await db.get_user_rank(user_id, chats_id)
-        user_to_unban_rank = await db.get_user_rank(user_id_to_unban, chats_id)
+        user_rank = await db.get_user_rank_1(user_id, chats_id)
+        user_to_unban_rank = await db.get_user_rank_1(user_id_to_unban, chats_id)
 
         user = await db.get_user(user_id, chats_id)
         user_to_unban = await db.get_user(user_id_to_unban, chats_id)
@@ -166,8 +166,9 @@ class BanList:
         user_id = message.from_user.id
 
         banned_users = await db.get_ban_users(chat_id)
+        user_rank = await db.get_user_rank_1(user_id, chat_id)
 
-        if banned_users:
+        if user_rank >= 1:
             ban_list_message = "Список забаненных пользователей:\n\n"
             for user in banned_users:
                 user_nick = await db.get_nick(user.user_id, chat_id)
@@ -199,20 +200,27 @@ class SearchBan:
         user_id_to_search = int(parts[1])
 
         banned_user = await db.search_ban(user_id_to_search, chat_id)
+        user_rank = await db.get_user_rank_1(user_id, chat_id)
 
-        if banned_user:
-            user_nick = await db.get_nick(banned_user.user_id, chat_id)
-            user_info = await db.get_user(banned_user.user_id, chat_id)
-            user_link = hlink(f'{user_nick}' if user_nick else f'{user_info.username}', f'https://t.me/{user_info.username}')
 
-            if banned_user.appealed == 'False':
-                ban_message = f'{user_link} - забанен до: {banned_user.date}'
+        if user_rank >= 1:
+
+            if banned_user:
+                user_nick = await db.get_nick(banned_user.user_id, chat_id)
+                user_info = await db.get_user(banned_user.user_id, chat_id)
+                user_link = hlink(f'{user_nick}' if user_nick else f'{user_info.username}', f'https://t.me/{user_info.username}')
+
+                if banned_user.appealed == 'False':
+                    ban_message = f'{user_link} - забанен до: {banned_user.date}'
+                else:
+                    ban_message = 'Пользователь не забанен'
+
+                await message.reply(ban_message, parse_mode='HTML', disable_web_page_preview=True)
             else:
-                ban_message = 'Пользователь не забанен'
+                await message.reply('Пользователь не найден в списке забаненных.')
 
-            await message.reply(ban_message, parse_mode='HTML', disable_web_page_preview=True)
         else:
-            await message.reply('Пользователь не найден в списке забаненных.')
+            await message.reply('У вас нет прав для использования этой команды.')
 
 
 

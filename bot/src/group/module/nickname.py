@@ -28,7 +28,7 @@ class NickName:
         user_id = message.from_user.id
 
         parts = message.text.split()
-        if len(parts) < 2:
+        if len(parts) < 2 and len(parts) > 2:
             return await message.reply("Использование: /snick <id юзера> <nickname>")
         
         try:
@@ -42,8 +42,8 @@ class NickName:
         user_nick = await db.get_nick(user_id, chat_id)
         user_to_nick_nick = await db.get_nick(user_id_to_nick, chat_id)
 
-        user_rank = await db.get_user_rank(user_id, chat_id)
-        user_to_nick_rank = await db.get_user_rank(user_id_to_nick, chat_id)
+        user_rank = await db.get_user_rank_1(user_id, chat_id)
+        user_to_nick_rank = await db.get_user_rank_1(user_id_to_nick, chat_id)
 
         user = await db.get_user(user_id, chat_id)
         user_to_nick = await db.get_user(user_id_to_nick, chat_id)
@@ -82,8 +82,8 @@ class UnNickName:
         user_nick = await db.get_nick(user_id, chat_id)
         user_to_rnick_nick = await db.get_nick(user_id_to_rnick, chat_id)
 
-        user_rank = await db.get_user_rank(user_id, chat_id)
-        user_to_rnick_rank = await db.get_user_rank(user_id_to_rnick, chat_id)
+        user_rank = await db.get_user_rank_1(user_id, chat_id)
+        user_to_rnick_rank = await db.get_user_rank_1(user_id_to_rnick, chat_id)
 
         user = await db.get_user(user_id, chat_id)
         user_to_rnick = await db.get_user(user_id_to_rnick, chat_id)
@@ -94,7 +94,7 @@ class UnNickName:
         if int(user_rank) >= 1:
             if int(user_rank) >= int(user_to_rnick_rank):
                 await message.reply(f'Пользователь {e} успешно сбросил никнейм участника {r}',
-                                    parse_mode='html')
+                                    parse_mode='html', disable_web_page_preview=True)
                 await db.del_nick(user_id_to_rnick, chat_id)
 
             else:
@@ -116,7 +116,7 @@ class SearchNickName:
 
         user_id_to_search = int(parts[1])
 
-        user_rank = await db.get_user_rank(user_id, chat_id)
+        user_rank = await db.get_user_rank_1(user_id, chat_id)
         user = await db.get_user(user_id, chat_id)
 
         if int(user_rank) >= 1:
@@ -143,11 +143,42 @@ class RemoveNickName:
         chat_id = message.chat.id
         user_id = message.from_user.id
 
-        user_rank = await db.get_user_rank(user_id, chat_id)
+        user_rank = await db.get_user_rank_1(user_id, chat_id)
 
         if int(user_rank) >= 3:
-            await db.del_all_nick(chat_id)
-            await message.reply('Все никнеймы успешно сброшены.')
+            res = await db.del_all_nick(chat_id)
+            if res:
+                await db.del_all_nick(chat_id)
+                await message.reply('Все никнеймы успешно сброшены.')
+
+            else:
+                await message.reply('Никнеймы не найдены.')
+        
+        else:
+            await message.reply('У вас нет прав для использования этой команды.')
+
+
+
+class NickNameList:
+    @staticmethod
+    async def nicklist(message: Message, bot: Bot, command: CommandObject | None = None):
+        chat_id = message.chat.id
+        user_id = message.from_user.id
+
+        user_rank = await db.get_user_rank_1(user_id, chat_id)
+
+        if int(user_rank) >= 1:
+            nick_list = await db.get_all_nick(chat_id)
+
+            if nick_list:
+                nick_list_message = "Список никнеймов:\n\n"
+                for nick_entry in nick_list:
+                    user = await db.get_user(nick_entry.user_id, chat_id)
+                    nick_list_message += f"{hlink(f'{nick_entry.nickname}', f'https://t.me/{user.username}')}\n"
+
+                await message.reply(nick_list_message, parse_mode='HTML', disable_web_page_preview=True)
+            else:
+                await message.reply('Список никнеймов пуст.')
         else:
             await message.reply('У вас нет прав для использования этой команды.')
         

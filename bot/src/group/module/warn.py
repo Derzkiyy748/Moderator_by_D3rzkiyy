@@ -43,8 +43,8 @@ class Warn:
         user_nick = await db.get_nick(user_id, chats_id)
         user_to_warn_nick = await db.get_nick(user_id_to_warn, chats_id)
 
-        user_rank = await db.get_user_rank(user_id, chats_id)
-        user_to_warn_rank = await db.get_user_rank(user_id_to_warn, chats_id)
+        user_rank = await db.get_user_rank_1(user_id, chats_id)
+        user_to_warn_rank = await db.get_user_rank_1(user_id_to_warn, chats_id)
 
         user = await db.get_user(user_id, chats_id)
         user_to_warn = await db.get_user(user_id_to_warn, chats_id)
@@ -101,8 +101,8 @@ class UnWarn:
         user_nick = await db.get_nick(user_id, chats_id)
         user_to_unwarn_nick = await db.get_nick(user_id_to_unwarn, chats_id)
 
-        user_rank = await db.get_user_rank(user_id, chats_id)
-        user_to_unwarn_rank = await db.get_user_rank(user_id_to_unwarn, chats_id)
+        user_rank = await db.get_user_rank_1(user_id, chats_id)
+        user_to_unwarn_rank = await db.get_user_rank_1(user_id_to_unwarn, chats_id)
 
         user = await db.get_user(user_id, chats_id)
         user_to_unwarn = await db.get_user(user_id_to_unwarn, chats_id)
@@ -139,7 +139,7 @@ class SearchWarn:
 
         user_id_to_search = int(parts[1])
 
-        user_rank = await db.get_user_rank(user_id, chat_id)
+        user_rank = await db.get_user_rank_1(user_id, chat_id)
         user = await db.get_user(user_id, chat_id)
 
         if int(user_rank) >= 1:
@@ -170,7 +170,7 @@ class WarnList:
         chat_id = message.chat.id
         user_id = message.from_user.id
 
-        user_rank = await db.get_user_rank(user_id, chat_id)
+        user_rank = await db.get_user_rank_1(user_id, chat_id)
         user = await db.get_user(user_id, chat_id)
 
         if int(user_rank) >= 1:

@@ -21,7 +21,7 @@ db = DatabaseGroup()
 class RankToUser:
     @staticmethod
     async def rank_(user_id: int, chat_id: int):
-        use = await db.get_user_rank(user_id, chat_id)
+        use = await db.get_user_rank_1(user_id, chat_id)
 
         user_rank_dict = {
             '1': "модератор(а,ом)",
